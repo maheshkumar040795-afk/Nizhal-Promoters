@@ -290,6 +290,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--smoke);color:var(--text);
 .empty-state i{font-size:4rem;color:var(--border);margin-bottom:1rem;display:block}
 .empty-state h3{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--forest);margin-bottom:0.5rem}
 
+/* SKELETON LOADER */
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+.skeleton-card{background:white;border-radius:16px;overflow:hidden;border:1px solid var(--border);max-width:360px;width:100%}
+.skeleton-img{height:210px;background:linear-gradient(90deg,#e8f5ee 25%,#d4eadc 50%,#e8f5ee 75%);background-size:800px 100%;animation:shimmer 1.4s infinite linear}
+.skeleton-body{padding:1rem}
+.skeleton-line{height:12px;border-radius:6px;margin-bottom:10px;background:linear-gradient(90deg,#e8f5ee 25%,#d4eadc 50%,#e8f5ee 75%);background-size:800px 100%;animation:shimmer 1.4s infinite linear}
+.skeleton-line.short{width:40%}
+.skeleton-line.med{width:65%}
+.skeleton-line.full{width:100%}
+.skeleton-line.price{height:18px;width:50%;margin-top:14px}
+
 /* MODAL */
 .modal-overlay{
   display:none;position:fixed;inset:0;
@@ -542,7 +553,8 @@ footer{background:var(--forest);padding:3rem 2rem 1.5rem}
   <button class="filter-chip" onclick="setChipFilter('Residential Plot', this)">Residential</button>
   <button class="filter-chip" onclick="setChipFilter('Commercial Plot', this)">Commercial</button>
   <button class="filter-chip" onclick="setChipFilter('Agricultural Land', this)">Agricultural</button>
-  <button class="filter-chip" onclick="setChipFilter('Industrial Land', this)">Industrial</button>
+  <button class="filter-chip" onclick="setChipFilter('Built House (New)', this)">Built New</button>
+  <button class="filter-chip" onclick="setChipFilter('Built House (Old)', this)">Built Old</button>
   <select class="sort-select" id="sortSelect">
     <option value="newest">Newest First</option>
     <option value="oldest">Oldest First</option>
@@ -556,9 +568,14 @@ footer{background:var(--forest);padding:3rem 2rem 1.5rem}
 <div class="listings-container">
   <div class="listings-header">
     <h2 class="listings-title"><i class="fas fa-seedling" style="color:var(--forest-light);margin-right:0.5rem"></i>Available Properties</h2>
-    <span class="listings-count" id="listingsCount">0 properties</span>
+    <span class="listings-count" id="listingsCount">Loading...</span>
   </div>
-  <div class="listings-grid" id="listingsGrid"></div>
+  <div class="listings-grid" id="listingsGrid">
+    <!-- Skeleton cards shown while Firebase loads -->
+    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line short"></div><div class="skeleton-line med"></div><div class="skeleton-line full"></div><div class="skeleton-line full"></div><div class="skeleton-line price"></div></div></div>
+    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line short"></div><div class="skeleton-line med"></div><div class="skeleton-line full"></div><div class="skeleton-line full"></div><div class="skeleton-line price"></div></div></div>
+    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line short"></div><div class="skeleton-line med"></div><div class="skeleton-line full"></div><div class="skeleton-line full"></div><div class="skeleton-line price"></div></div></div>
+  </div>
 </div>
 
 <!-- PROPERTY DETAIL MODAL -->
@@ -658,7 +675,8 @@ else{window.addEventListener('load',initAOS);}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+         collection, onSnapshot, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
 // Nizhal Promoters Firebase project config
 const firebaseConfig = {
@@ -673,7 +691,9 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
+const db  = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+});
 
 let listings = [];
 let filtered = [];
@@ -692,8 +712,27 @@ function loadStaff() {
   });
 }
 
+function showSkeletons() {
+  const grid = document.getElementById('listingsGrid');
+  const skeletonHtml = `<div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line short"></div><div class="skeleton-line med"></div><div class="skeleton-line full"></div><div class="skeleton-line full"></div><div class="skeleton-line price"></div></div></div>`.repeat(6);
+  grid.innerHTML = skeletonHtml;
+  document.getElementById('listingsCount').textContent = 'Loading...';
+}
+
 function loadListings() {
   const q = query(collection(db, 'listings'), orderBy('dateAdded', 'desc'));
+
+  // STEP 1: Load from IndexedDB cache instantly (source: 'cache')
+  getDocs(q).then(snapshot => {
+    if (!snapshot.empty) {
+      listings = snapshot.docs.map(d => ({ id: d.data().customId || d.id, ...d.data() }));
+      applyFilters();
+      updateStats();
+      checkUrlParam();
+    }
+  }).catch(() => {});
+
+  // STEP 2: Live sync from Firestore network (updates UI if data changed)
   onSnapshot(q, (snapshot) => {
     listings = snapshot.docs.map(d => ({ id: d.data().customId || d.id, ...d.data() }));
     applyFilters();
@@ -701,9 +740,12 @@ function loadListings() {
     checkUrlParam();
   }, (error) => {
     console.error('Firebase error:', error);
-    listings = [];
-    applyFilters();
-    updateStats();
+    // Cache already shown in step 1, so no blank screen
+    if (!listings.length) {
+      document.getElementById('listingsGrid').innerHTML =
+        `<div class="empty-state"><i class="fas fa-wifi"></i><h3>Slow connection</h3><p>Please refresh the page.</p></div>`;
+      document.getElementById('listingsCount').textContent = '—';
+    }
   });
 }
 
