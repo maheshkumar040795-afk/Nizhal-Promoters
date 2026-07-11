@@ -457,6 +457,18 @@ onSnapshot(staffQ, snap => {
         </div>
 
         <div class="fg-full"><div class="f-label">YouTube Video Link <i class="fab fa-youtube" style="color:#FF0000"></i></div><input type="text" class="f-input" id="fVideo" placeholder="e.g. https://youtu.be/XXXXXXXXXXX or https://youtube.com/watch?v=XXXXXXXXXXX"></div>
+        <div class="fg-full">
+          <div class="f-label">Site Location (Google Maps Link) <i class="fas fa-map-marker-alt" style="color:#22C55E"></i></div>
+          <input type="text" class="f-input" id="fSiteLocation" placeholder="e.g. https://maps.app.goo.gl/XXXXXXX or https://goo.gl/maps/XXXXXXX">
+          <label style="display:inline-flex;align-items:center;gap:0.55rem;margin-top:0.55rem;cursor:pointer;user-select:none">
+            <input type="checkbox" id="fShareLocation" style="width:16px;height:16px;accent-color:var(--saffron);cursor:pointer;flex-shrink:0">
+            <span style="font-size:0.82rem;color:var(--text-muted);font-weight:600">
+              <i class="fas fa-share-alt" style="color:var(--saffron);margin-right:0.3rem"></i>
+              Share to customer
+              <span style="font-weight:400;color:var(--text-muted);opacity:0.75"> — if unchecked, location is saved for admin reference only</span>
+            </span>
+          </label>
+        </div>
         <div class="fg-full"><div class="f-label">Additional Details</div><textarea class="f-input" id="fDetails" rows="3" placeholder="Road access, patta details, DTCP approval…"></textarea></div>
       </div>
     </div>
@@ -560,7 +572,7 @@ function renderTable(){
       <td style="color:var(--text-muted);font-size:0.85rem">${l.location}</td>
       <td style="color:var(--text-muted);font-size:0.85rem;font-family:'JetBrains Mono',monospace;letter-spacing:0.02em">${l.size||'N/A'}</td>
       <td class="price-text">₹${parseInt(l.price||0).toLocaleString('en-IN')}</td>
-      <td><span style="background:rgba(13,148,136,0.12);color:var(--teal);padding:0.2rem 0.6rem;border-radius:6px;font-size:0.78rem;font-weight:600;font-family:'JetBrains Mono',monospace">📸 ${photoCount}</span>${l.videoUrl?' <span style="background:rgba(220,38,38,0.12);color:#F87171;padding:0.2rem 0.5rem;border-radius:6px;font-size:0.78rem;font-weight:600"><i class="fab fa-youtube"></i></span>':''}</td>
+      <td><span style="background:rgba(13,148,136,0.12);color:var(--teal);padding:0.2rem 0.6rem;border-radius:6px;font-size:0.78rem;font-weight:600;font-family:'JetBrains Mono',monospace">📸 ${photoCount}</span>${l.videoUrl?' <span style="background:rgba(220,38,38,0.12);color:#F87171;padding:0.2rem 0.5rem;border-radius:6px;font-size:0.78rem;font-weight:600"><i class="fab fa-youtube"></i></span>':''}${l.siteLocation?` <span title="${l.shareLocation?'Location shared with customer':'Location saved — admin only'}" style="background:${l.shareLocation?'rgba(34,197,94,0.12);color:#22C55E':'rgba(148,163,184,0.15);color:#94A3B8'};padding:0.2rem 0.5rem;border-radius:6px;font-size:0.78rem;font-weight:600"><i class="fas fa-map-marker-alt"></i></span>`:''}</td>
       <td style="color:var(--text-muted);font-size:0.82rem;white-space:nowrap;font-family:'JetBrains Mono',monospace;letter-spacing:0.02em">${date}</td>
       <td>
         <div class="status-checks">
@@ -599,9 +611,10 @@ function openAddModal(){
   currentImages=[];
   document.getElementById('modalHdrTitle').innerHTML='<i class="fas fa-plus-circle" style="color:var(--saffron);margin-right:0.5rem"></i>Add New Listing';
   document.getElementById('fId').value=generateCustomId();
-  ['fType','fTitle','fLocation','fCity','fSize','fPrice','fDimensions','fFacing','fDetails','fVideo'].forEach(id=>document.getElementById(id).value='');
+  ['fType','fTitle','fLocation','fCity','fSize','fPrice','fDimensions','fFacing','fDetails','fVideo','fSiteLocation'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fOwner').value='Nizhal Promoters';
   document.getElementById('fContact').value='+91 78458 40648';
+  document.getElementById('fShareLocation').checked=false;
   document.getElementById('actualOwnerCheck').checked=false;
   document.getElementById('actualOwnerFields').style.display='none';
   document.getElementById('fActualOwnerName').value='';
@@ -634,6 +647,8 @@ function openEditModal(firestoreId){
   document.getElementById('fContact').value=l.contact||'';
   document.getElementById('fDetails').value=l.details||'';
   document.getElementById('fVideo').value=l.videoUrl||'';
+  document.getElementById('fSiteLocation').value=l.siteLocation||'';
+  document.getElementById('fShareLocation').checked=!!l.shareLocation;
   const hasActualOwner = !!(l.actualOwnerName || l.actualOwnerContact);
   document.getElementById('actualOwnerCheck').checked = hasActualOwner;
   document.getElementById('actualOwnerFields').style.display = hasActualOwner ? 'grid' : 'none';
@@ -740,6 +755,8 @@ async function saveListing(){
       contact:document.getElementById('fContact').value.trim(),
       details:document.getElementById('fDetails').value.trim(),
       videoUrl:document.getElementById('fVideo').value.trim(),
+      siteLocation:document.getElementById('fSiteLocation').value.trim(),
+      shareLocation:document.getElementById('fShareLocation').checked,
       actualOwnerName: document.getElementById('actualOwnerCheck').checked ? document.getElementById('fActualOwnerName').value.trim() : '',
       actualOwnerContact: document.getElementById('actualOwnerCheck').checked ? document.getElementById('fActualOwnerContact').value.trim() : '',
       actualOwnerNotes: document.getElementById('actualOwnerCheck').checked ? document.getElementById('fActualOwnerNotes').value.trim() : '',
