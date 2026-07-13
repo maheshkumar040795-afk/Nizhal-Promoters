@@ -320,6 +320,7 @@ onSnapshot(staffQ, snap => {
         <option value="">All Types</option>
         <option>Residential Plot</option><option>Commercial Plot</option>
         <option>Agricultural Land</option><option>Industrial Land</option>
+        <option>Mixed Use</option>
         <option>Built House (New)</option><option>Built House (Old)</option>
       </select>
     </div>
@@ -526,8 +527,8 @@ function updateStats(){
   document.getElementById('s1').textContent=L.length;
   const landTypes=['Residential Plot','Commercial Plot','Agricultural Land','Industrial Land'];
   const houseTypes=['Built House (New)','Built House (Old)'];
-  document.getElementById('s2').textContent=L.filter(l=>landTypes.includes(l.type)).length;
-  document.getElementById('s3').textContent=L.filter(l=>houseTypes.includes(l.type)).length;
+  document.getElementById('s2').textContent=L.filter(l=>landTypes.includes(l.type)||l.type==='Mixed Use').length;
+  document.getElementById('s3').textContent=L.filter(l=>houseTypes.includes(l.type)||l.type==='Mixed Use').length;
   const today=new Date().toDateString();
   document.getElementById('s4').textContent=L.filter(l=>l.dateAdded&&new Date(l.dateAdded.toDate?l.dateAdded.toDate():l.dateAdded).toDateString()===today).length;
 }

@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nizhal Promoters — Premium Plots & Land in Kumbakonam</title>
+<title>Nizhal Promoters (Nilal Promoters) — Premium Plots & Land in Kumbakonam</title>
+<meta name="description" content="Nizhal Promoters, also searched as Nilal Promoters — premium residential, commercial &amp; agricultural plots in Kumbakonam and Darasuram. Verified properties with legal assistance.">
 
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="512x512" href="favicon-512x512.png">
@@ -12,13 +13,13 @@
 
 <meta property="og:type"        content="website">
 <meta property="og:site_name"   content="Nizhal Promoters">
-<meta property="og:title"       id="ogTitle"       content="Nizhal Promoters — Premium Plots & Land in Kumbakonam">
-<meta property="og:description" id="ogDesc"        content="Browse premium plots and land for sale in Kumbakonam. Contact us today!">
+<meta property="og:title"       id="ogTitle"       content="Nizhal Promoters (Nilal Promoters) — Premium Plots & Land in Kumbakonam">
+<meta property="og:description" id="ogDesc"        content="Nizhal Promoters, also searched as Nilal Promoters. Browse premium plots and land for sale in Kumbakonam. Contact us today!">
 <meta property="og:image"       id="ogImage"       content="">
 <meta property="og:url"         id="ogUrl"         content="">
 <meta name="twitter:card"                           content="summary_large_image">
-<meta name="twitter:title"      id="twTitle"       content="Nizhal Promoters — Premium Plots & Land in Kumbakonam">
-<meta name="twitter:description" id="twDesc"       content="Browse premium plots and land for sale in Kumbakonam.">
+<meta name="twitter:title"      id="twTitle"       content="Nizhal Promoters (Nilal Promoters) — Premium Plots & Land in Kumbakonam">
+<meta name="twitter:description" id="twDesc"       content="Nizhal Promoters, also searched as Nilal Promoters. Browse premium plots and land for sale in Kumbakonam.">
 <meta name="twitter:image"      id="twImage"       content="">
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -463,6 +464,10 @@ footer{background:var(--forest);padding:3rem 2rem 1.5rem}
   .detail-grid{grid-template-columns:1fr 1fr}
   .contact-box{flex-direction:column}
   .property-card{max-width:100%}
+  .card-footer{flex-wrap:wrap;row-gap:0.6rem}
+  .card-footer>div:first-child{order:1}
+  .card-actions{order:2;margin-left:auto}
+  .card-site-location{order:3;flex:1 1 100%;flex-direction:row!important;justify-content:flex-start;gap:0.35rem!important}
 }
 </style>
 </head>
@@ -535,6 +540,7 @@ footer{background:var(--forest);padding:3rem 2rem 1.5rem}
         <option value="Commercial Plot">Commercial</option>
         <option value="Agricultural Land">Agricultural</option>
         <option value="Industrial Land">Industrial</option>
+        <option value="Mixed Use">Mixed Use</option>
         <option value="Built House (New)">Built House (New)</option>
         <option value="Built House (Old)">Built House (Old)</option>
       </select>
@@ -553,6 +559,7 @@ footer{background:var(--forest);padding:3rem 2rem 1.5rem}
   <button class="filter-chip" onclick="setChipFilter('Residential Plot', this)">Residential</button>
   <button class="filter-chip" onclick="setChipFilter('Commercial Plot', this)">Commercial</button>
   <button class="filter-chip" onclick="setChipFilter('Agricultural Land', this)">Agricultural</button>
+  <button class="filter-chip" onclick="setChipFilter('Mixed Use', this)">Mixed Use</button>
   <button class="filter-chip" onclick="setChipFilter('Built House (New)', this)">House New</button>
   <button class="filter-chip" onclick="setChipFilter('Built House (Old)', this)">House Old</button>
   <select class="sort-select" id="sortSelect">
@@ -601,11 +608,12 @@ footer{background:var(--forest);padding:3rem 2rem 1.5rem}
     <div class="footer-brand">
       <div class="logo" style="margin-bottom:0.75rem">
         <div class="logo-img" style="background:rgba(255,255,255,0.12)">
-          <img src="logo.png" alt="Nizhal Promoters" onerror="this.parentElement.innerHTML='<span style=\'font-family:Playfair Display,serif;font-weight:900;color:white;font-size:1.1rem\'>NP</span>'">
+          <img src="logo.png" alt="Nizhal Promoters (Nilal Promoters) logo" onerror="this.parentElement.innerHTML='<span style=\'font-family:Playfair Display,serif;font-weight:900;color:white;font-size:1.1rem\'>NP</span>'">
         </div>
         <div class="logo-name">Nizhal Promoters</div>
       </div>
       <p>Your trusted partner for buying premium land and plots in Kumbakonam &amp; around places. Verified properties. Legal assistance provided.</p>
+      <p style="margin-top:0.5rem;font-size:0.85rem;opacity:0.75">Nizhal Promoters is also searched online as "Nilal Promoters."</p>
     </div>
     <div>
       <div class="footer-title">Quick Links</div>
@@ -754,8 +762,8 @@ function updateStats() {
   document.getElementById('statTotal').textContent = active.length;
   const landTypes = ['Residential Plot','Commercial Plot','Agricultural Land','Industrial Land'];
   const houseTypes = ['Built House (New)','Built House (Old)'];
-  document.getElementById('statLand').textContent = active.filter(l => landTypes.includes(l.type)).length;
-  document.getElementById('statHouse').textContent = active.filter(l => houseTypes.includes(l.type)).length;
+  document.getElementById('statLand').textContent = active.filter(l => landTypes.includes(l.type) || l.type === 'Mixed Use').length;
+  document.getElementById('statHouse').textContent = active.filter(l => houseTypes.includes(l.type) || l.type === 'Mixed Use').length;
   const today = new Date().toDateString();
   document.getElementById('statToday').textContent = active.filter(l => {
     const d = l.dateAdded ? (l.dateAdded.toDate ? l.dateAdded.toDate() : new Date(l.dateAdded)) : null;
@@ -780,7 +788,8 @@ function applyFilters() {
   filtered = listings.filter(l => {
     if(l.sold) return false;  // hide sold properties from customers
     const matchSearch = !search || (l.title||'').toLowerCase().includes(search) || (l.location||'').toLowerCase().includes(search) || (l.id||'').toLowerCase().includes(search) || (l.city||'').toLowerCase().includes(search);
-    const matchType = !type || l.type === type;
+    const matchType = !type || l.type === type ||
+      (l.type === 'Mixed Use' && ['Residential Plot','Commercial Plot','Agricultural Land'].includes(type));
     const matchPrice = parseFloat(l.price||0) <= maxPrice;
     return matchSearch && matchType && matchPrice;
   });
@@ -835,9 +844,9 @@ function renderListings() {
             <div class="card-price">₹${price}</div>
             <div style="font-size:0.72rem;color:var(--sage);font-weight:600;margin-top:0.2rem;letter-spacing:0.3px">Price Negotiable</div>
           </div>
-          ${(l.shareLocation && l.siteLocation) ? `<a href="${l.siteLocation}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:flex;flex-direction:column;align-items:center;gap:0.15rem;color:var(--forest-mid);text-decoration:none">
+          ${(l.shareLocation && l.siteLocation) ? `<a href="${l.siteLocation}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="card-site-location" style="display:flex;flex-direction:column;align-items:center;gap:0.15rem;color:var(--forest-mid);text-decoration:none">
             <i class="fas fa-map-marker-alt" style="font-size:1.1rem"></i>
-            <span style="font-size:0.66rem;font-weight:700;letter-spacing:0.2px;white-space:nowrap">Site Location</span>
+            <span style="font-size:0.66rem;font-weight:700;letter-spacing:0.2px;white-space:nowrap">Location</span>
           </a>` : ''}
           <div class="card-actions">
             <button class="btn-view" onclick="event.stopPropagation();openDetail('${l.id}')"><i class="fas fa-eye"></i> View</button>
@@ -1012,7 +1021,7 @@ function galJump(idx) {
 function closeDetail() {
   document.getElementById('detailModal').classList.remove('open');
   document.body.style.overflow = '';
-  document.title = 'Nizhal Promoters — Premium Plots & Land in Kumbakonam';
+  document.title = 'Nizhal Promoters (Nilal Promoters) — Premium Plots & Land in Kumbakonam';
   history.replaceState(null, '', location.pathname);
   // Stop any playing YouTube video
   const ytPlayers = document.querySelectorAll('#modalContent .yt-thumb-player iframe');
