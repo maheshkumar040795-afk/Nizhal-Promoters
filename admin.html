@@ -409,13 +409,25 @@ onSnapshot(staffQ, snap => {
 
       <div class="form-grid" style="margin-top:1.25rem">
         <div><div class="f-label">Property ID</div><input type="text" class="f-input" id="fId" readonly placeholder="Auto-generated"></div>
-        <div><div class="f-label">Property Type <span style="color:var(--saffron)">*</span></div>
-          <select class="f-input" id="fType">
+        <div class="fg-full"><div class="f-label">Property Type <span style="color:var(--saffron)">*</span></div>
+          <select class="f-input" id="fType" onchange="toggleMixedSubType(this)">
             <option value="">Select Type</option>
             <option>Residential Plot</option><option>Commercial Plot</option>
             <option>Agricultural Land</option><option>Industrial Land</option>
             <option>Mixed Use</option><option>Built House (New)</option><option>Built House (Old)</option>
           </select>
+          <div id="mixedSubTypeWrap" style="display:none;margin-top:0.6rem;display:flex;flex-direction:column;gap:0.5rem">
+            <label style="display:inline-flex;align-items:center;gap:0.6rem;cursor:pointer;user-select:none">
+              <input type="checkbox" id="mixedAgriComm" onchange="handleMixedCheck('mixedAgriComm')"
+                style="width:16px;height:16px;accent-color:var(--saffron);cursor:pointer;flex-shrink:0">
+              <span style="font-size:0.88rem;color:var(--text-main)">Agriculture or Commercial Use <small style="color:var(--text-muted)">(shows under Agriculture + Commercial)</small></span>
+            </label>
+            <label style="display:inline-flex;align-items:center;gap:0.6rem;cursor:pointer;user-select:none">
+              <input type="checkbox" id="mixedResComm" onchange="handleMixedCheck('mixedResComm')"
+                style="width:16px;height:16px;accent-color:var(--saffron);cursor:pointer;flex-shrink:0">
+              <span style="font-size:0.88rem;color:var(--text-main)">Residential or Commercial Use <small style="color:var(--text-muted)">(shows under Residential + Commercial)</small></span>
+            </label>
+          </div>
         </div>
         <div class="fg-full"><div class="f-label">Title <span style="color:var(--saffron)">*</span></div><input type="text" class="f-input" id="fTitle" placeholder="e.g. Prime corner plot near highway"></div>
         <div><div class="f-label">Location / Area <span style="color:var(--saffron)">*</span></div><input type="text" class="f-input" id="fLocation" placeholder="Area name, street…"></div>
@@ -527,8 +539,9 @@ function updateStats(){
   document.getElementById('s1').textContent=L.length;
   const landTypes=['Residential Plot','Commercial Plot','Agricultural Land','Industrial Land'];
   const houseTypes=['Built House (New)','Built House (Old)'];
+  // Mixed Use listings are always land-based (Agri+Comm or Res+Comm) — never count toward Houses
   document.getElementById('s2').textContent=L.filter(l=>landTypes.includes(l.type)||l.type==='Mixed Use').length;
-  document.getElementById('s3').textContent=L.filter(l=>houseTypes.includes(l.type)||l.type==='Mixed Use').length;
+  document.getElementById('s3').textContent=L.filter(l=>houseTypes.includes(l.type)).length;
   const today=new Date().toDateString();
   document.getElementById('s4').textContent=L.filter(l=>l.dateAdded&&new Date(l.dateAdded.toDate?l.dateAdded.toDate():l.dateAdded).toDateString()===today).length;
 }
@@ -536,7 +549,12 @@ function updateStats(){
 /* ── DASHBOARD ────────────────────────── */
 function renderDashboard(){
   const types={};
-  window._listings.forEach(l=>{types[l.type||'Unknown']=(types[l.type||'Unknown']||0)+1;});
+  const mixedLabels={'agri-comm':'Mixed Use (Agri/Commercial)','res-comm':'Mixed Use (Res/Commercial)'};
+  window._listings.forEach(l=>{
+    let label=l.type||'Unknown';
+    if(l.type==='Mixed Use') label = mixedLabels[l.mixedSubType] || 'Mixed Use (Unspecified)';
+    types[label]=(types[label]||0)+1;
+  });
   const colors=['#F5C518','#FF6B2B','#0D9488','#4F46E5','#7C3AED','#DC2626','#16A34A'];
   const total=window._listings.length||1;
   document.getElementById('typeBreakdown').innerHTML=Object.entries(types).sort((a,b)=>b[1]-a[1]).map(([t,n],i)=>{
@@ -545,7 +563,11 @@ function renderDashboard(){
   }).join('')||'<p style="color:var(--text-muted);font-size:0.88rem">No listings yet</p>';
 
   const recent=[...window._listings].slice(0,5);
-  document.getElementById('recentActivity').innerHTML=recent.map(l=>`<div style="display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--border);font-size:0.82rem"><div><div style="color:var(--text-main);font-weight:500">${l.title||l.customId||''}</div><div style="color:var(--text-muted)">${l.type||''} • ${l.location||''}</div></div><div style="color:var(--gold);font-weight:600;white-space:nowrap;margin-left:1rem">₹${parseInt(l.price||0).toLocaleString('en-IN')}</div></div>`).join('')||'<p style="color:var(--text-muted);font-size:0.88rem">No listings yet</p>';
+  document.getElementById('recentActivity').innerHTML=recent.map(l=>{
+    let typeLabel=l.type||'';
+    if(l.type==='Mixed Use') typeLabel += l.mixedSubType==='agri-comm' ? ' (Agri/Commercial)' : l.mixedSubType==='res-comm' ? ' (Res/Commercial)' : ' (Unspecified)';
+    return `<div style="display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--border);font-size:0.82rem"><div><div style="color:var(--text-main);font-weight:500">${l.title||l.customId||''}</div><div style="color:var(--text-muted)">${typeLabel} • ${l.location||''}</div></div><div style="color:var(--gold);font-weight:600;white-space:nowrap;margin-left:1rem">₹${parseInt(l.price||0).toLocaleString('en-IN')}</div></div>`;
+  }).join('')||'<p style="color:var(--text-muted);font-size:0.88rem">No listings yet</p>';
 }
 
 /* ── TABLE ────────────────────────────── */
@@ -569,7 +591,7 @@ function renderTable(){
       <td><img class="table-img" src="${img}" alt="" onerror="this.src='https://via.placeholder.com/52x38/1A1838/555?text=Err'"></td>
       <td style="font-size:0.78rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;letter-spacing:0.02em">${l.customId||''}<br><span style="font-size:0.7rem;color:var(--border-light)">📅 ${date}</span></td>
       <td style="max-width:180px"><div style="font-weight:500">${l.title}</div><div style="font-size:0.75rem;color:var(--text-muted)">${l.city||''}</div></td>
-      <td><span class="type-badge">${l.type||'N/A'}</span></td>
+      <td><span class="type-badge">${l.type||'N/A'}</span>${l.type==='Mixed Use'?`<div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px">${l.mixedSubType==='agri-comm'?'Agri + Commercial':l.mixedSubType==='res-comm'?'Res + Commercial':'Unspecified'}</div>`:''}</td>
       <td style="color:var(--text-muted);font-size:0.85rem">${l.location}</td>
       <td style="color:var(--text-muted);font-size:0.85rem;font-family:'JetBrains Mono',monospace;letter-spacing:0.02em">${l.size||'N/A'}</td>
       <td class="price-text">₹${parseInt(l.price||0).toLocaleString('en-IN')}</td>
@@ -613,6 +635,9 @@ function openAddModal(){
   document.getElementById('modalHdrTitle').innerHTML='<i class="fas fa-plus-circle" style="color:var(--saffron);margin-right:0.5rem"></i>Add New Listing';
   document.getElementById('fId').value=generateCustomId();
   ['fType','fTitle','fLocation','fCity','fSize','fPrice','fDimensions','fFacing','fDetails','fVideo','fSiteLocation'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mixedAgriComm').checked=false;
+  document.getElementById('mixedResComm').checked=false;
+  document.getElementById('mixedSubTypeWrap').style.display='none';
   document.getElementById('fOwner').value='Nizhal Promoters';
   document.getElementById('fContact').value='+91 78458 40648';
   document.getElementById('fShareLocation').checked=false;
@@ -637,6 +662,9 @@ function openEditModal(firestoreId){
   document.getElementById('modalHdrTitle').innerHTML='<i class="fas fa-edit" style="color:var(--teal);margin-right:0.5rem"></i>Edit Listing';
   document.getElementById('fId').value=editingCustomId;
   document.getElementById('fType').value=l.type||'';
+  document.getElementById('mixedSubTypeWrap').style.display = (l.type==='Mixed Use') ? 'flex' : 'none';
+  document.getElementById('mixedAgriComm').checked = l.mixedSubType==='agri-comm';
+  document.getElementById('mixedResComm').checked = l.mixedSubType==='res-comm';
   document.getElementById('fTitle').value=l.title||'';
   document.getElementById('fLocation').value=l.location||'';
   document.getElementById('fCity').value=l.city||'';
@@ -665,6 +693,29 @@ function openEditModal(firestoreId){
 
 function closeEditModal(){document.getElementById('editModal').classList.remove('open');document.body.style.overflow='';}
 function closeModalOnOverlay(e){if(e.target===document.getElementById('editModal'))closeEditModal();}
+
+/* ── MIXED USE SUB-TYPE (Agriculture/Commercial OR Residential/Commercial) ── */
+function toggleMixedSubType(sel){
+  const wrap=document.getElementById('mixedSubTypeWrap');
+  const isMixed = sel.value==='Mixed Use';
+  wrap.style.display = isMixed ? 'flex' : 'none';
+  if(!isMixed){
+    document.getElementById('mixedAgriComm').checked=false;
+    document.getElementById('mixedResComm').checked=false;
+  }
+}
+function handleMixedCheck(justChecked){
+  // Mutually exclusive — checking one auto-unchecks the other
+  const agri=document.getElementById('mixedAgriComm');
+  const res=document.getElementById('mixedResComm');
+  if(justChecked==='mixedAgriComm' && agri.checked) res.checked=false;
+  if(justChecked==='mixedResComm' && res.checked) agri.checked=false;
+}
+function getMixedSubType(){
+  if(document.getElementById('mixedAgriComm').checked) return 'agri-comm';
+  if(document.getElementById('mixedResComm').checked) return 'res-comm';
+  return '';
+}
 
 /* ── ACTUAL OWNER TOGGLE (Admin-only) ── */
 function toggleActualOwner(cb){
@@ -735,6 +786,12 @@ async function saveListing(){
   const price=document.getElementById('fPrice').value;
   if(!type||!title||!location||!size||!price){toast('Please fill in all required fields','error');return;}
 
+  const mixedSubType = type==='Mixed Use' ? getMixedSubType() : '';
+  if(type==='Mixed Use' && !mixedSubType){
+    toast('Please select "Agriculture or Commercial Use" or "Residential or Commercial Use" for Mixed Use','error');
+    return;
+  }
+
   const saveBtn=document.getElementById('saveBtn');
   saveBtn.disabled=true;
   saveBtn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Saving…';
@@ -746,7 +803,7 @@ async function saveListing(){
 
     const listing={
       customId,
-      type,title,
+      type,mixedSubType,title,
       location:document.getElementById('fLocation').value.trim(),
       city:document.getElementById('fCity').value.trim(),
       size,price,

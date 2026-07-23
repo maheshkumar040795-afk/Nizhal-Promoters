@@ -540,7 +540,6 @@ footer{background:var(--forest);padding:3rem 2rem 1.5rem}
         <option value="Commercial Plot">Commercial</option>
         <option value="Agricultural Land">Agricultural</option>
         <option value="Industrial Land">Industrial</option>
-        <option value="Mixed Use">Mixed Use</option>
         <option value="Built House (New)">Built House (New)</option>
         <option value="Built House (Old)">Built House (Old)</option>
       </select>
@@ -559,7 +558,6 @@ footer{background:var(--forest);padding:3rem 2rem 1.5rem}
   <button class="filter-chip" onclick="setChipFilter('Residential Plot', this)">Residential</button>
   <button class="filter-chip" onclick="setChipFilter('Commercial Plot', this)">Commercial</button>
   <button class="filter-chip" onclick="setChipFilter('Agricultural Land', this)">Agricultural</button>
-  <button class="filter-chip" onclick="setChipFilter('Mixed Use', this)">Mixed Use</button>
   <button class="filter-chip" onclick="setChipFilter('Built House (New)', this)">House New</button>
   <button class="filter-chip" onclick="setChipFilter('Built House (Old)', this)">House Old</button>
   <select class="sort-select" id="sortSelect">
@@ -757,13 +755,24 @@ function loadListings() {
   });
 }
 
+function displayType(l) {
+  // Customers never see the literal "Mixed Use" label — show the actual applicable categories instead
+  if (l.type === 'Mixed Use') {
+    if (l.mixedSubType === 'agri-comm') return 'Agricultural / Commercial';
+    if (l.mixedSubType === 'res-comm') return 'Residential / Commercial';
+    return 'Land';
+  }
+  return l.type || 'Plot';
+}
+
 function updateStats() {
   const active = listings.filter(l => !l.sold);
   document.getElementById('statTotal').textContent = active.length;
   const landTypes = ['Residential Plot','Commercial Plot','Agricultural Land','Industrial Land'];
   const houseTypes = ['Built House (New)','Built House (Old)'];
+  // Mixed Use listings (Agri+Commercial or Res+Commercial) are always land-based — never counted as Houses
   document.getElementById('statLand').textContent = active.filter(l => landTypes.includes(l.type) || l.type === 'Mixed Use').length;
-  document.getElementById('statHouse').textContent = active.filter(l => houseTypes.includes(l.type) || l.type === 'Mixed Use').length;
+  document.getElementById('statHouse').textContent = active.filter(l => houseTypes.includes(l.type)).length;
   const today = new Date().toDateString();
   document.getElementById('statToday').textContent = active.filter(l => {
     const d = l.dateAdded ? (l.dateAdded.toDate ? l.dateAdded.toDate() : new Date(l.dateAdded)) : null;
@@ -788,8 +797,14 @@ function applyFilters() {
   filtered = listings.filter(l => {
     if(l.sold) return false;  // hide sold properties from customers
     const matchSearch = !search || (l.title||'').toLowerCase().includes(search) || (l.location||'').toLowerCase().includes(search) || (l.id||'').toLowerCase().includes(search) || (l.city||'').toLowerCase().includes(search);
-    const matchType = !type || l.type === type ||
-      (l.type === 'Mixed Use' && ['Residential Plot','Commercial Plot','Agricultural Land'].includes(type));
+    let matchType = !type || l.type === type;
+    if (!matchType && l.type === 'Mixed Use') {
+      if (l.mixedSubType === 'agri-comm') {
+        matchType = ['Agricultural Land', 'Commercial Plot'].includes(type);
+      } else if (l.mixedSubType === 'res-comm') {
+        matchType = ['Residential Plot', 'Commercial Plot'].includes(type);
+      }
+    }
     const matchPrice = parseFloat(l.price||0) <= maxPrice;
     return matchSearch && matchType && matchPrice;
   });
@@ -822,7 +837,7 @@ function renderListings() {
     <div class="property-card card-enter" onclick="openDetail('${l.id}')" style="animation-delay:${idx*60}ms">
       <div class="card-img-wrap">
         <img src="${img}" alt="${l.title}" loading="lazy">
-        <div class="card-badge">${l.type||'Plot'}</div>
+        <div class="card-badge">${displayType(l)}</div>
         <div class="card-watermark">Nizhal Promoters</div>
         ${l.advancePaid ? `<div class="card-adv-paid"><i class="fas fa-handshake"></i> Advance Paid</div>` : ''}
       </div>
@@ -922,7 +937,7 @@ function openDetail(id) {
   const url = `${location.origin}${location.pathname}?property=${id}`;
 
   const ogImg = images[0] || '';
-  const ogDesc = `${l.type||'Plot'} • ${l.size||''} • ${l.location||''}${l.city?', '+l.city:''} • ₹${price}`;
+  const ogDesc = `${displayType(l)} • ${l.size||''} • ${l.location||''}${l.city?', '+l.city:''} • ₹${price}`;
   document.title = `${l.title} — Nizhal Promoters`;
   document.getElementById('ogTitle').setAttribute('content', l.title);
   document.getElementById('ogDesc').setAttribute('content', ogDesc);
@@ -934,7 +949,7 @@ function openDetail(id) {
   history.replaceState(null, '', `?property=${id}`);
   document.getElementById('modalContent').innerHTML = `
     <div class="modal-tags">
-      <span class="modal-tag tag-type">${l.type||'Plot'}</span>
+      <span class="modal-tag tag-type">${displayType(l)}</span>
       <span class="modal-tag tag-id">${l.id}</span>
       ${l.facing ? `<span class="modal-tag tag-facing"><i class="fas fa-compass"></i> ${l.facing}</span>` : ''}
       ${l.advancePaid ? `<span class="modal-tag tag-adv-paid"><i class="fas fa-handshake"></i> Advance Paid</span>` : ''}
