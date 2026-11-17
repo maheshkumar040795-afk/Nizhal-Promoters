@@ -311,6 +311,7 @@ onSnapshot(staffQ, snap => {
       <h2 class="section-title"><i class="fas fa-list" style="color:var(--gold);margin-right:0.5rem"></i>Manage Listings</h2>
       <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
         <button class="btn-add" style="background:linear-gradient(135deg,#16A34A,#15803D)" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> Export Excel</button>
+        <button class="btn-add" id="migrateBtn" style="display:none;background:linear-gradient(135deg,#7C3AED,#5B21B6)" onclick="migratePhotosToCloudinary()"><i class="fas fa-cloud-upload-alt"></i> Move Old Photos to Cloud</button>
         <button class="btn-add" onclick="openAddModal()"><i class="fas fa-plus"></i> Add New Listing</button>
       </div>
     </div>
@@ -396,7 +397,7 @@ onSnapshot(staffQ, snap => {
       <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imgFileInput').click()">
         <div class="upload-icon">📸</div>
         <p><strong>Click to upload property photos</strong></p>
-        <small>JPG, PNG supported • Max 8 photos • Compressed automatically on save</small>
+        <small>JPG, PNG supported • Max 8 photos • Uploaded to cloud automatically</small>
         <input type="file" id="imgFileInput" multiple accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleImgs(event)">
         <div class="preview-row" id="imgPreviewRow"></div>
       </div>
@@ -499,7 +500,54 @@ const ADMIN_PASSWORD = 'nizhal@admin2024';
 window._listings  = [];
 let editingId     = null;
 let editingCustomId = null;
-let currentImages = [];   // base64 strings — single array for both new & existing photos
+let currentImages = [];   // Cloudinary URLs (old listings may still hold base64 until migrated)
+let pendingUploads = 0;
+
+/* ── CLOUDINARY CONFIG ── fill these two values ── */
+const CLOUDINARY_CLOUD_NAME    = 'vgv22shm';
+const CLOUDINARY_UPLOAD_PRESET = 'nizhal-promoters';
+const CLOUDINARY_FOLDER        = 'nizhal-promoters/listings';
+
+// Insert a Cloudinary transformation into a delivery URL (no-op for non-Cloudinary / base64)
+function cld(url, t){
+  if(!url || url.indexOf('res.cloudinary.com')===-1 || url.indexOf('/upload/')===-1) return url;
+  return url.replace('/upload/', '/upload/'+t+'/');
+}
+
+// Upload a File/Blob or a data-URI string to Cloudinary, returns secure_url
+async function uploadToCloudinary(file){
+  if(CLOUDINARY_CLOUD_NAME.startsWith('YOUR_')) throw new Error('Cloudinary is not configured yet');
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  fd.append('folder', CLOUDINARY_FOLDER);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {method:'POST', body:fd});
+  const data = await res.json();
+  if(!res.ok || !data.secure_url) throw new Error((data.error && data.error.message) || 'Upload failed');
+  return data.secure_url;
+}
+
+// Resize big phone photos before upload (keeps uploads fast on mobile data)
+function resizeToBlob(file, maxW){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = ev => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if(w > maxW){ h = Math.round(h * maxW / w); w = maxW; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error('Could not process image')), 'image/jpeg', 0.85);
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 /* ── AUTH ─────────────────────────────── */
 function doLogin(){
@@ -534,7 +582,42 @@ function switchTab(name,el){
 }
 
 /* ── STATS ────────────────────────────── */
+/* ── ONE-TIME MIGRATION: base64 photos in Firestore → Cloudinary ── */
+function listingsNeedingMigration(){
+  return (window._listings||[]).filter(l => (l.images||[]).some(u => typeof u==='string' && u.startsWith('data:')));
+}
+let migrating = false;
+async function migratePhotosToCloudinary(){
+  if(migrating) return;
+  const todo = listingsNeedingMigration();
+  if(!todo.length){ toast('All photos are already on the cloud ✅','success'); return; }
+  if(!confirm(`Move photos of ${todo.length} listing(s) to Cloudinary? Keep this tab open until it finishes.`)) return;
+  migrating = true;
+  const btn = document.getElementById('migrateBtn');
+  const {doc, updateDoc} = window._fsLib;
+  let done = 0, failed = 0;
+  for(const l of todo){
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Moving ${done+1}/${todo.length}…`;
+    try {
+      const urls = [];
+      for(const u of l.images){
+        urls.push(u.startsWith('data:') ? await uploadToCloudinary(u) : u);
+      }
+      await updateDoc(doc(window._db,'listings',l.firestoreId), {images: urls});
+      done++;
+    } catch(err){
+      console.error('Migration failed for', l.customId||l.firestoreId, err);
+      failed++; done++;
+    }
+  }
+  migrating = false;
+  btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Move Old Photos to Cloud';
+  toast(failed ? `Finished with ${failed} error(s) — click again to retry those` : 'All photos moved to Cloudinary ✅', failed ? 'warning' : 'success');
+}
+
 function updateStats(){
+  const mb=document.getElementById('migrateBtn');
+  if(mb && !migrating) mb.style.display = listingsNeedingMigration().length ? '' : 'none';
   const L=window._listings;
   document.getElementById('s1').textContent=L.length;
   const landTypes=['Residential Plot','Commercial Plot','Agricultural Land','Industrial Land'];
@@ -588,7 +671,7 @@ function renderTable(){
     const isSold=!!l.sold;
     const isAdv=!!l.advancePaid;
     return`<tr class="${isSold?'row-sold':''}">
-      <td><img class="table-img" src="${img}" alt="" onerror="this.src='https://via.placeholder.com/52x38/1A1838/555?text=Err'"></td>
+      <td><img class="table-img" src="${cld(img,'f_auto,q_auto,w_120')}" loading="lazy" alt="" onerror="this.src='https://via.placeholder.com/52x38/1A1838/555?text=Err'"></td>
       <td style="font-size:0.78rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;letter-spacing:0.02em">${l.customId||''}<br><span style="font-size:0.7rem;color:var(--border-light)">📅 ${date}</span></td>
       <td style="max-width:180px"><div style="font-weight:500">${l.title}</div><div style="font-size:0.75rem;color:var(--text-muted)">${l.city||''}</div></td>
       <td><span class="type-badge">${l.type||'N/A'}</span>${l.type==='Mixed Use'?`<div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px">${l.mixedSubType==='agri-comm'?'Agri + Commercial':l.mixedSubType==='res-comm'?'Res + Commercial':'Unspecified'}</div>`:''}</td>
@@ -734,7 +817,7 @@ const MAX_PHOTOS = 8;
 function handleImgs(e){
   const files = Array.from(e.target.files);
   if(!files.length) return;
-  const slotsLeft = MAX_PHOTOS - currentImages.length;
+  const slotsLeft = MAX_PHOTOS - currentImages.length - pendingUploads;
   if(slotsLeft <= 0){
     toast(`Max ${MAX_PHOTOS} photos allowed. Remove one first.`, 'warning');
     document.getElementById('imgFileInput').value='';
@@ -743,23 +826,20 @@ function handleImgs(e){
   const allowed = files.slice(0, slotsLeft);
   if(files.length > slotsLeft) toast(`Only ${slotsLeft} slot(s) left — extra photos ignored.`, 'warning');
 
-  allowed.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = ev => {
-      // Compress immediately on read
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let w = img.width, h = img.height;
-        if(w > 700){ h = Math.round(h * 700 / w); w = 700; }
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        currentImages.push(canvas.toDataURL('image/jpeg', 0.80));
-        renderImagePreviews();
-      };
-      img.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
+  allowed.forEach(async file => {
+    pendingUploads++;
+    renderImagePreviews();
+    try {
+      const blob = await resizeToBlob(file, 1600);
+      const url  = await uploadToCloudinary(blob);
+      currentImages.push(url);
+    } catch(err){
+      console.error(err);
+      toast('Photo upload failed: '+err.message, 'error');
+    } finally {
+      pendingUploads--;
+      renderImagePreviews();
+    }
   });
   document.getElementById('imgFileInput').value='';
 }
@@ -767,7 +847,9 @@ function handleImgs(e){
 function renderImagePreviews(){
   const row = document.getElementById('imgPreviewRow');
   row.innerHTML = currentImages.map((img, i) =>
-    `<div class="prev-item"><img src="${img}"><button class="prev-rem" onclick="removeImg(${i})"><i class="fas fa-times" style="pointer-events:none"></i></button></div>`
+    `<div class="prev-item"><img src="${cld(img,'f_auto,q_auto,w_200')}"><button class="prev-rem" onclick="event.stopPropagation();removeImg(${i})"><i class="fas fa-times" style="pointer-events:none"></i></button></div>`
+  ).join('') + Array(pendingUploads).fill(
+    `<div class="prev-item" style="display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:var(--text-muted)"><i class="fas fa-spinner fa-spin"></i></div>`
   ).join('');
   document.getElementById('uploadZone').classList.toggle('has-img', currentImages.length > 0);
 }
@@ -791,6 +873,8 @@ async function saveListing(){
     toast('Please select "Agriculture or Commercial Use" or "Residential or Commercial Use" for Mixed Use','error');
     return;
   }
+
+  if(pendingUploads>0){toast('Please wait — photos are still uploading','warning');return;}
 
   const saveBtn=document.getElementById('saveBtn');
   saveBtn.disabled=true;

@@ -708,6 +708,12 @@ let currentDetailId = null;
 let galIndex = 0;
 let staffList = []; // staff loaded from Firestore
 
+// Insert a Cloudinary transformation (resize + WebP/AVIF + auto quality). Leaves old base64/other URLs untouched.
+function cld(url, t) {
+  if (!url || url.indexOf('res.cloudinary.com') === -1 || url.indexOf('/upload/') === -1) return url;
+  return url.replace('/upload/', '/upload/' + t + '/');
+}
+
 function loadStaff() {
   const q = query(collection(db, 'staff'), orderBy('createdAt', 'asc'));
   onSnapshot(q, snap => {
@@ -836,7 +842,7 @@ function renderListings() {
     return `
     <div class="property-card card-enter" onclick="openDetail('${l.id}')" style="animation-delay:${idx*60}ms">
       <div class="card-img-wrap">
-        <img src="${img}" alt="${l.title}" loading="lazy">
+        <img src="${cld(img,'f_auto,q_auto,c_fill,w_600,h_400')}" alt="${l.title}" loading="lazy" decoding="async">
         <div class="card-badge">${displayType(l)}</div>
         <div class="card-watermark">Nizhal Promoters</div>
         ${l.advancePaid ? `<div class="card-adv-paid"><i class="fas fa-handshake"></i> Advance Paid</div>` : ''}
@@ -936,7 +942,7 @@ function openDetail(id) {
   const price = parseInt(l.price||0).toLocaleString('en-IN');
   const url = `${location.origin}${location.pathname}?property=${id}`;
 
-  const ogImg = images[0] || '';
+  const ogImg = cld(images[0] || '', 'f_jpg,q_auto,c_fill,w_1200,h_630');
   const ogDesc = `${displayType(l)} • ${l.size||''} • ${l.location||''}${l.city?', '+l.city:''} • ₹${price}`;
   document.title = `${l.title} — Nizhal Promoters`;
   document.getElementById('ogTitle').setAttribute('content', l.title);
@@ -1009,12 +1015,12 @@ function openDetail(id) {
 }
 
 function renderGallery(images) {
-  document.getElementById('galleryMain').src = images[galIndex];
+  document.getElementById('galleryMain').src = cld(images[galIndex], 'f_auto,q_auto,w_1200');
   document.getElementById('galCounter').textContent = `${galIndex+1}/${images.length}`;
   document.getElementById('galPrev').style.display = images.length > 1 ? 'flex' : 'none';
   document.getElementById('galNext').style.display = images.length > 1 ? 'flex' : 'none';
   document.getElementById('thumbStrip').innerHTML = images.map((img, i) =>
-    `<img class="thumb ${i===galIndex?'active':''}" src="${img}" onclick="galJump(${i})">`
+    `<img class="thumb ${i===galIndex?'active':''}" src="${cld(img,'f_auto,q_auto,c_fill,w_160,h_110')}" loading="lazy" onclick="galJump(${i})">`
   ).join('');
 }
 
