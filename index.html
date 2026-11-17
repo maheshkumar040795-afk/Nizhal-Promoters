@@ -287,6 +287,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--smoke);color:var(--text);
 .btn-share:hover{background:var(--forest-mid);color:white}
 
 /* EMPTY STATE */
+.pagination{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:0.4rem;margin:2rem 0 1rem}
+.pg-btn{min-width:40px;height:40px;padding:0 0.75rem;border-radius:10px;border:1.5px solid #d8e6dd;background:#fff;color:var(--forest);font-weight:600;font-size:0.9rem;cursor:pointer;transition:all .2s;font-family:inherit;display:inline-flex;align-items:center;gap:0.35rem}
+.pg-btn:hover:not(:disabled){border-color:var(--forest-light);background:#f0f7f3}
+.pg-btn.active{background:var(--forest);border-color:var(--forest);color:#fff}
+.pg-btn:disabled{opacity:0.4;cursor:not-allowed}
+.pg-dots{color:var(--muted);padding:0 0.2rem}
+@media(max-width:480px){.pg-btn{min-width:36px;height:36px;font-size:0.85rem;padding:0 0.55rem}.pg-nav{padding:0 0.6rem}}
 .empty-state{grid-column:1/-1;text-align:center;padding:5rem 2rem;color:var(--muted)}
 .empty-state i{font-size:4rem;color:var(--border);margin-bottom:1rem;display:block}
 .empty-state h3{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--forest);margin-bottom:0.5rem}
@@ -478,11 +485,22 @@ footer{background:var(--forest);padding:3rem 2rem 1.5rem}
 
   <!-- Video Background -->
   <div class="hero-video-layer">
-    <video id="heroVideo" muted playsinline autoplay preload="auto"
-      webkit-playsinline x-webkit-airplay="deny"
-      style="opacity:0;transition:opacity 0.5s ease;">
-      <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_083109_283f3553-e28f-428b-a723-d639c617eb2b.mp4" type="video/mp4">
-    </video>
+    <video id="heroVideo" muted playsinline autoplay loop preload="auto"
+      webkit-playsinline x-webkit-airplay="deny" disablepictureinpicture
+      poster="https://res.cloudinary.com/vgv22shm/video/upload/so_0,q_auto,w_1280/v1794903697/nizhal-promoters/hero/vqlkwqm3lkoibqngbwan.jpg"
+      style="transition:opacity 0.5s ease;"></video>
+    <script>
+    // Pick a lighter video for phones / data-saver (served & compressed by Cloudinary)
+    (function(){
+      var v=document.getElementById('heroVideo');
+      var c=navigator.connection||{};
+      var small=window.matchMedia('(max-width: 768px)').matches||c.saveData||/(^|-)2g|3g/.test(c.effectiveType||'');
+      var base='https://res.cloudinary.com/vgv22shm/video/upload/';
+      var id='v1794903697/nizhal-promoters/hero/vqlkwqm3lkoibqngbwan';
+      if(small) v.poster=base+'so_0,q_auto,w_720/'+id+'.jpg';
+      v.src=base+(small?'q_auto:eco,w_720':'q_auto:good,w_1280')+',vc_h264,ac_none/'+id+'.mp4';
+    })();
+    </script>
     <div class="hero-video-grad"></div>
   </div>
 
@@ -581,6 +599,7 @@ footer{background:var(--forest);padding:3rem 2rem 1.5rem}
     <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line short"></div><div class="skeleton-line med"></div><div class="skeleton-line full"></div><div class="skeleton-line full"></div><div class="skeleton-line price"></div></div></div>
     <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line short"></div><div class="skeleton-line med"></div><div class="skeleton-line full"></div><div class="skeleton-line full"></div><div class="skeleton-line price"></div></div></div>
   </div>
+  <div class="pagination" id="pagination"></div>
 </div>
 
 <!-- PROPERTY DETAIL MODAL -->
@@ -706,6 +725,8 @@ let filtered = [];
 let activeChipType = '';
 let currentDetailId = null;
 let galIndex = 0;
+const PAGE_SIZE = 15;
+let currentPage = 1;
 let staffList = []; // staff loaded from Firestore
 
 // Insert a Cloudinary transformation (resize + WebP/AVIF + auto quality). Leaves old base64/other URLs untouched.
@@ -738,7 +759,7 @@ function loadListings() {
   getDocs(q).then(snapshot => {
     if (!snapshot.empty) {
       listings = snapshot.docs.map(d => ({ id: d.data().customId || d.id, ...d.data() }));
-      applyFilters();
+      applyFilters({ keepPage: true });
       updateStats();
       checkUrlParam();
     }
@@ -747,7 +768,7 @@ function loadListings() {
   // STEP 2: Live sync from Firestore network (updates UI if data changed)
   onSnapshot(q, (snapshot) => {
     listings = snapshot.docs.map(d => ({ id: d.data().customId || d.id, ...d.data() }));
-    applyFilters();
+    applyFilters({ keepPage: true });
     updateStats();
     checkUrlParam();
   }, (error) => {
@@ -794,7 +815,8 @@ function setChipFilter(type, btn) {
   applyFilters();
 }
 
-function applyFilters() {
+function applyFilters(opts) {
+  const keepPage = !!(opts && opts.keepPage);
   const search = (document.getElementById('heroSearch').value || '').toLowerCase();
   const type = document.getElementById('heroType').value || activeChipType;
   const maxPrice = parseFloat(document.getElementById('heroPrice').value) || Infinity;
@@ -823,17 +845,27 @@ function applyFilters() {
     case 'price-high': filtered.sort((a,b) => parseFloat(b.price) - parseFloat(a.price)); break;
     case 'area': filtered.sort((a,b) => parseFloat(b.size) - parseFloat(a.size)); break;
   }
+  if (!keepPage) currentPage = 1;
   renderListings();
 }
 
 function renderListings() {
   const grid = document.getElementById('listingsGrid');
-  document.getElementById('listingsCount').textContent = filtered.length + ' propert' + (filtered.length === 1 ? 'y' : 'ies');
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+  const startIdx = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+  document.getElementById('listingsCount').textContent = filtered.length
+    ? `Showing ${startIdx + 1}–${startIdx + pageItems.length} of ${filtered.length} propert${filtered.length === 1 ? 'y' : 'ies'}`
+    : '0 properties';
   if (!filtered.length) {
     grid.innerHTML = `<div class="empty-state"><i class="fas fa-seedling"></i><h3>No properties found</h3><p>Try adjusting your search or filters</p></div>`;
+    renderPagination(0);
     return;
   }
-  grid.innerHTML = filtered.map((l, idx) => {
+  renderPagination(totalPages);
+  grid.innerHTML = pageItems.map((l, idx) => {
     const img = (l.images && l.images[0]) ? l.images[0] : 'https://via.placeholder.com/400x220/1B4332/ffffff?text=No+Image';
     const price = parseInt(l.price||0).toLocaleString('en-IN');
     const postedDate = l.dateAdded
@@ -877,6 +909,33 @@ function renderListings() {
       </div>
     </div>`;
   }).join('');
+}
+
+function renderPagination(totalPages) {
+  const el = document.getElementById('pagination');
+  if (!el) return;
+  if (totalPages <= 1) { el.innerHTML = ''; return; }
+  const p = currentPage;
+  // page numbers with ellipsis: 1 … p-1 p p+1 … last
+  const nums = [];
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || Math.abs(i - p) <= 1) nums.push(i);
+    else if (nums[nums.length - 1] !== '…') nums.push('…');
+  }
+  el.innerHTML =
+    `<button class="pg-btn pg-nav" ${p === 1 ? 'disabled' : ''} onclick="goToPage(${p - 1})"><i class="fas fa-chevron-left"></i> Prev</button>` +
+    nums.map(n => n === '…'
+      ? `<span class="pg-dots">…</span>`
+      : `<button class="pg-btn ${n === p ? 'active' : ''}" onclick="goToPage(${n})">${n}</button>`).join('') +
+    `<button class="pg-btn pg-nav" ${p === totalPages ? 'disabled' : ''} onclick="goToPage(${p + 1})">Next <i class="fas fa-chevron-right"></i></button>`;
+}
+
+function goToPage(n) {
+  currentPage = n;
+  renderListings();
+  const head = document.querySelector('.listings-header') || document.getElementById('listingsGrid');
+  const y = head.getBoundingClientRect().top + window.scrollY - 90;
+  window.scrollTo({ top: y, behavior: 'smooth' });
 }
 
 function getYouTubeId(url) {
@@ -1093,6 +1152,7 @@ function checkUrlParam() {
 }
 
 window.applyFilters         = applyFilters;
+window.goToPage             = goToPage;
 window.setChipFilter        = setChipFilter;
 window.openDetail           = openDetail;
 window.closeDetail          = closeDetail;
@@ -1112,61 +1172,45 @@ setTimeout(function(){
   });}
 },1500);
 
-// ===== CINEMATIC VIDEO FADE LOOP (iOS Safari safe) =====
+// ===== HERO VIDEO: native seamless loop + auto-recovery (never stuck) =====
 (function() {
   const video = document.getElementById('heroVideo');
   if (!video) return;
-  const FADE_DURATION = 0.5;
 
-  function setOpacity(v) { video.style.opacity = v; }
-
-  let rafId = null;
-  function tick() {
-    const t = video.currentTime;
-    const d = video.duration;
-    if (!d || isNaN(d)) { rafId = requestAnimationFrame(tick); return; }
-    if (t < FADE_DURATION) { setOpacity(t / FADE_DURATION); }
-    else if (t >= d - FADE_DURATION) { setOpacity(Math.max(0, (d - t) / FADE_DURATION)); }
-    else { setOpacity(1); }
-    rafId = requestAnimationFrame(tick);
+  function tryPlay() {
+    if (!video.paused) return;
+    const p = video.play();
+    if (p && p.catch) p.catch(function(){ /* autoplay blocked (e.g. iOS Low Power) — poster stays visible */ });
   }
 
-  function startPlay() {
-    var p = video.play();
-    if (p !== undefined) {
-      p.then(function() {
-        if (rafId) cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(tick);
-      }).catch(function() {
-        // Autoplay blocked — just show the video statically
-        setOpacity(1);
-      });
-    } else {
-      // Older Safari — just show it
-      setOpacity(1);
-    }
-  }
+  video.addEventListener('loadeddata', tryPlay);
+  video.addEventListener('canplay', tryPlay);
+  tryPlay();
 
-  // iOS fires 'loadeddata' more reliably than 'canplay'
-  video.addEventListener('loadeddata', startPlay);
-  video.addEventListener('canplay', startPlay);
-
-  // Hard fallback: if video still invisible after 2s, force show
-  setTimeout(function() {
-    if (parseFloat(video.style.opacity) < 0.5) {
-      setOpacity(1);
-      startPlay();
-    }
-  }, 2000);
-
-  video.addEventListener('ended', function() {
-    setOpacity(0);
-    if (rafId) cancelAnimationFrame(rafId);
-    setTimeout(function() {
-      video.currentTime = 0;
-      startPlay();
-    }, 100);
+  // Resume when coming back to the tab/app, and on first tap (iOS Low Power Mode blocks autoplay)
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) tryPlay(); });
+  ['touchstart','click','scroll'].forEach(function(ev){
+    window.addEventListener(ev, tryPlay, { once: true, passive: true });
   });
+
+  // Watchdog: if playback freezes (stalled network / decoder), nudge it
+  let lastT = -1, stuckCount = 0;
+  setInterval(function() {
+    if (document.hidden) return;
+    if (video.paused) { tryPlay(); return; }
+    if (video.currentTime === lastT) {
+      stuckCount++;
+      if (stuckCount >= 2) {           // ~4s frozen
+        stuckCount = 0;
+        const t = video.currentTime;
+        video.currentTime = (t + 0.1) % (video.duration || 14);
+        tryPlay();
+      }
+    } else {
+      stuckCount = 0;
+    }
+    lastT = video.currentTime;
+  }, 2000);
 })();
 
 // ===== WIRE UP FILTER EVENTS INSIDE MODULE (no timing race) =====
