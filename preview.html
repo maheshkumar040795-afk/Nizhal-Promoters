@@ -350,6 +350,8 @@ footer{position:relative;background:var(--paddy-900);color:rgba(255,255,255,.72)
 .fab-call::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--turmeric);opacity:0;animation:ring 2.6s ease-out infinite}
 @keyframes ring{0%{transform:scale(.9);opacity:.8}100%{transform:scale(1.35);opacity:0}}
 .fab-whatsapp{background:#25D366}
+.fab-container{transition:opacity .35s var(--ease-out),transform .35s var(--ease-out)}
+.fab-container.dock-hidden{opacity:0;transform:translateY(24px) scale(.9);pointer-events:none}
 .fab-social{display:none!important}
 .fab-container.open .fab-social{display:grid!important;animation:dockIn .35s var(--ease-out) both}
 .fab-more{background:rgba(255,255,255,.1);border:0;cursor:pointer;color:#fff;order:-1}
@@ -402,6 +404,31 @@ footer{position:relative;background:var(--paddy-900);color:rgba(255,255,255,.72)
   .sort-select{max-width:132px}
 }
 
+/* ===== Mobile hero polish ===== */
+@media(max-width:768px){
+  .hero{min-height:auto}
+  .hero-scrim{background:
+    linear-gradient(180deg,rgba(12,36,27,.78) 0%,rgba(12,36,27,.35) 22%,rgba(12,36,27,.25) 40%,rgba(12,36,27,.88) 78%,rgba(12,36,27,.95) 100%)}
+  .hero-shade{opacity:.3}
+  .nav{margin-top:.75rem;width:calc(100% - 1.5rem)}
+  .hero-body{padding:3.25rem 0 5.25rem;width:calc(100% - 2.25rem)}
+  .hero-eyebrow{font-size:.66rem;letter-spacing:.16em;margin-bottom:.9rem;white-space:nowrap}
+  .hero-eyebrow::before{width:20px}
+  .eb-extra{display:none}
+  .hero-title{font-size:clamp(2.2rem,10.5vw,2.9rem);line-height:1.02}
+  .hero-desc{font-size:.98rem;margin-top:1rem;line-height:1.6}
+  .hero-actions{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:1.5rem}
+  .hero-actions .btn{padding:.75rem .6rem;font-size:.9rem;min-height:50px;white-space:nowrap}
+  .search-wrap{margin-top:-2.75rem;width:calc(100% - 1.5rem)}
+  .search-box{padding:.85rem}
+  .sg-input{height:48px}
+  .btn-search{height:48px}
+}
+@media(max-width:360px){
+  .hero-actions{grid-template-columns:1fr}
+  .brand-name{font-size:.92rem}
+}
+
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
   .hero-shade{animation:none}
@@ -412,7 +439,7 @@ footer{position:relative;background:var(--paddy-900);color:rgba(255,255,255,.72)
 <body>
 
 <!-- ===== HERO ===== -->
-<header class="hero">
+<header class="hero" id="hero">
   <div class="hero-media">
     <video id="heroVideo" muted playsinline autoplay loop preload="auto"
       webkit-playsinline x-webkit-airplay="deny" disablepictureinpicture aria-hidden="true"
@@ -462,7 +489,7 @@ footer{position:relative;background:var(--paddy-900);color:rgba(255,255,255,.72)
 
   <div class="hero-body">
     <div>
-      <p class="hero-eyebrow rise">Kumbakonam · Darasuram · Cauvery Delta</p>
+      <p class="hero-eyebrow rise">Kumbakonam · Darasuram<span class="eb-extra"> · Cauvery Delta</span></p>
       <h1 class="hero-title rise d1">Find your <em>dream plot</em><br>in the delta region</h1>
       <p class="hero-desc rise d2">Verified residential, commercial and agricultural land, listed by Nizhal Promoters — rooted in trust, growing with you.</p>
       <div class="hero-actions rise d3">
@@ -1173,6 +1200,16 @@ loadStaff();
   var sh=document.getElementById('filterShell'),se=document.getElementById('stickySentinel');
   if(!sh||!se||!('IntersectionObserver' in window))return;
   new IntersectionObserver(function(e){sh.classList.toggle('stuck',!e[0].isIntersecting);},{threshold:0}).observe(se);
+})();
+// On phones, keep the contact dock out of the way while the hero (which has its own Call/WhatsApp) is on screen
+(function(){
+  var hero=document.getElementById('hero'),dock=document.querySelector('.fab-container');
+  if(!hero||!dock||!('IntersectionObserver' in window))return;
+  var mq=window.matchMedia('(max-width: 768px)'),heroVisible=true;
+  function apply(){dock.classList.toggle('dock-hidden',mq.matches&&heroVisible);}
+  new IntersectionObserver(function(e){heroVisible=e[0].intersectionRatio>0.35;apply();},{threshold:[0,0.35,0.6,1]}).observe(hero);
+  if(mq.addEventListener)mq.addEventListener('change',apply);
+  apply();
 })();
 </script>
 </body>
