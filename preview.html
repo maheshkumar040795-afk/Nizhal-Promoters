@@ -203,7 +203,12 @@ select.sg-input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://ww
 .spec-item:nth-child(even){padding-left:.75rem}
 .spec-item:nth-child(n+3){border-top:1px dashed var(--line)}
 .spec-item i{color:var(--paddy-400);width:14px;font-size:.8rem;flex-shrink:0}
-.card-footer{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-top:auto}
+.card-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem .6rem;margin-top:auto}
+.card-footer>div:first-child{flex:1 1 100%;display:flex;align-items:baseline;justify-content:space-between;gap:.5rem}
+.card-footer .card-actions{margin-left:auto}
+.card-site-location{flex-direction:row!important;gap:.4rem!important;padding:0 .9rem;border:1.5px solid var(--line);border-radius:var(--r-pill);min-height:44px;align-items:center}
+.card-site-location span{font-size:.82rem!important}
+.card-site-location:hover{border-color:var(--paddy-400)}
 .card-price{font-family:var(--f-display);font-size:1.45rem;color:var(--paddy-800);font-variant-numeric:tabular-nums;line-height:1.05}
 .card-actions{display:flex;gap:.45rem}
 .btn-view{min-height:44px;background:var(--paddy-800);color:#fff;border:none;padding:0 1.05rem;border-radius:var(--r-pill);font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:.45rem;transition:background .25s,transform .25s var(--ease-out)}
