@@ -430,9 +430,9 @@ footer{position:relative;background:var(--paddy-900);color:rgba(255,255,255,.72)
   .fab-container{left:.75rem;right:.75rem;bottom:calc(.6rem + env(safe-area-inset-bottom));flex-direction:row;justify-content:space-between;padding:.4rem .55rem;border-radius:var(--r-pill);gap:.25rem}
   .fab-container .fab-social{display:grid!important}
   .fab-more{display:none!important}
-  .fab-call{order:-2;width:auto;height:46px;padding:0 1.1rem;border-radius:var(--r-pill);display:inline-flex!important;align-items:center;gap:.45rem;font-size:1rem}
-  .fab-call::after{border-radius:var(--r-pill)}
-  .fab-call::before{content:"Call";font-weight:700;font-size:.92rem;order:2}
+  .fab-container .fab-call{order:-2;width:auto;height:46px;padding:0 1.1rem;border-radius:var(--r-pill);display:inline-flex!important;align-items:center;gap:.45rem;font-size:1rem}
+  .fab-container .fab-call::after{border-radius:var(--r-pill)}
+  .fab-container .fab-call::before{content:"Call";font-weight:700;font-size:.92rem;order:2}
   .fab-whatsapp{order:-1}
   .fab-item{width:42px;height:42px}
   .fab-container.dock-hidden{transform:translateY(120%)}
