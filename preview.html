@@ -325,7 +325,7 @@ footer{position:relative;background:var(--paddy-900);color:rgba(255,255,255,.72)
 .footer-contact i{color:var(--turmeric-soft);margin-right:.55rem;width:14px}
 .footer-contact a{text-decoration:none}
 .footer-contact a:hover{color:var(--turmeric-soft)}
-.footer-bottom{position:relative;max-width:1200px;margin:0 auto;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}
+.footer-bottom{padding-right:4.5rem;position:relative;max-width:1200px;margin:0 auto;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}
 .footer-copy{color:rgba(255,255,255,.45);font-size:.84rem}
 .footer-admin-link{color:rgba(255,255,255,.5);font-size:.82rem;text-decoration:none;padding:.45rem .9rem;border:1px solid rgba(255,255,255,.16);border-radius:var(--r-pill);transition:all .2s}
 .footer-admin-link:hover{color:var(--turmeric-soft);border-color:var(--turmeric-soft)}
@@ -515,6 +515,7 @@ footer{position:relative;background:var(--paddy-900);color:rgba(255,255,255,.72)
 </section>
 
 <!-- ===== FILTERS (sticky) ===== -->
+<div class="listings-zone">
 <div id="stickySentinel" aria-hidden="true" style="height:1px"></div>
 <div class="filter-shell" id="filterShell">
   <div class="filter-bar" id="listings">
@@ -552,6 +553,7 @@ footer{position:relative;background:var(--paddy-900);color:rgba(255,255,255,.72)
   </div>
   <div class="pagination" id="pagination"></div>
 </main>
+</div>
 
 <!-- PROPERTY DETAIL MODAL -->
 <div class="modal-overlay" id="detailModal" onclick="closeDetailOnOverlay(event)">
