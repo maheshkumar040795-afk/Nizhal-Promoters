@@ -80,15 +80,15 @@ button,input,select{font-family:inherit}
 /* ========== HERO ========== */
 .hero{position:relative;min-height:min(100svh,900px);display:flex;flex-direction:column;color:#fff;overflow:hidden;background:var(--paddy-900);isolation:isolate}
 .hero-media{position:absolute;inset:0;z-index:-3}
-.hero-media video{width:100%;height:100%;object-fit:cover;display:block}
+.hero-media video{width:100%;height:100%;object-fit:cover;display:block;filter:brightness(1.12) saturate(1.18) contrast(1.04)}
 .hero-scrim{position:absolute;inset:0;z-index:-1;pointer-events:none;
   background:
-    linear-gradient(180deg,rgba(12,36,27,.55) 0%,rgba(12,36,27,0) 26%),
-    linear-gradient(0deg,rgba(12,36,27,.92) 0%,rgba(12,36,27,.55) 34%,rgba(12,36,27,0) 62%),
-    linear-gradient(90deg,rgba(12,36,27,.55) 0%,rgba(12,36,27,0) 55%)}
+    linear-gradient(180deg,rgba(12,36,27,.28) 0%,rgba(12,36,27,0) 20%),
+    linear-gradient(0deg,rgba(12,36,27,.72) 0%,rgba(12,36,27,.28) 30%,rgba(12,36,27,0) 52%),
+    linear-gradient(90deg,rgba(12,36,27,.42) 0%,rgba(12,36,27,0) 48%)}
 
 /* Signature: dappled tree shade drifting over the land */
-.hero-shade{position:absolute;inset:-12%;z-index:-2;pointer-events:none;opacity:.42;mix-blend-mode:multiply;will-change:transform;animation:shadeDrift 26s ease-in-out infinite alternate}
+.hero-shade{position:absolute;inset:-12%;z-index:-2;pointer-events:none;opacity:.2;mix-blend-mode:multiply;will-change:transform;animation:shadeDrift 26s ease-in-out infinite alternate}
 .hero-shade svg{width:100%;height:100%;display:block}
 @keyframes shadeDrift{
   0%{transform:translate3d(-2%,-1%,0) rotate(-1deg) scale(1.02)}
@@ -113,11 +113,11 @@ button,input,select{font-family:inherit}
 
 /* Hero body */
 .hero-body{position:relative;z-index:5;flex:1;width:min(1200px,calc(100% - 3rem));margin:0 auto;display:grid;grid-template-columns:minmax(0,760px);align-items:end;gap:2.5rem;padding:6rem 0 7.5rem}
-.hero-eyebrow{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.2em;text-transform:uppercase;color:var(--turmeric-soft);display:flex;align-items:center;gap:.6rem;margin-bottom:1.25rem}
+.hero-eyebrow{text-shadow:0 1px 3px rgba(0,0,0,.5);font-family:var(--f-mono);font-size:.74rem;letter-spacing:.2em;text-transform:uppercase;color:var(--turmeric-soft);display:flex;align-items:center;gap:.6rem;margin-bottom:1.25rem}
 .hero-eyebrow::before{content:"";width:28px;height:1.5px;background:currentColor;opacity:.8}
-.hero-title{font-family:var(--f-display);font-weight:400;font-size:clamp(2.6rem,6.6vw,5.4rem);line-height:.98;letter-spacing:-.02em;text-wrap:balance;text-shadow:0 2px 30px rgba(0,0,0,.25)}
+.hero-title{font-family:var(--f-display);font-weight:400;font-size:clamp(2.6rem,6.6vw,5.4rem);line-height:.98;letter-spacing:-.02em;text-wrap:balance;text-shadow:0 2px 6px rgba(0,0,0,.28),0 4px 34px rgba(0,0,0,.35)}
 .hero-title em{font-style:normal;color:var(--turmeric-soft)}
-.hero-desc{font-size:clamp(1rem,1.4vw,1.15rem);color:rgba(255,255,255,.84);max-width:34rem;margin-top:1.4rem;line-height:1.65}
+.hero-desc{text-shadow:0 1px 3px rgba(0,0,0,.45),0 2px 18px rgba(0,0,0,.35);font-size:clamp(1rem,1.4vw,1.15rem);color:rgba(255,255,255,.92);max-width:34rem;margin-top:1.4rem;line-height:1.65}
 .hero-actions{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:2rem}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:.55rem;min-height:48px;padding:.8rem 1.5rem;border-radius:var(--r-pill);font-weight:700;font-size:.98rem;text-decoration:none;border:0;cursor:pointer;transition:transform .3s var(--ease-out),box-shadow .3s,background .25s}
 .btn-primary{background:var(--turmeric);color:var(--paddy-900)}
@@ -409,8 +409,8 @@ footer{position:relative;background:var(--paddy-900);color:rgba(255,255,255,.72)
 @media(max-width:768px){
   .hero{min-height:auto}
   .hero-scrim{background:
-    linear-gradient(180deg,rgba(12,36,27,.78) 0%,rgba(12,36,27,.35) 22%,rgba(12,36,27,.25) 40%,rgba(12,36,27,.88) 78%,rgba(12,36,27,.95) 100%)}
-  .hero-shade{opacity:.3}
+    linear-gradient(180deg,rgba(12,36,27,.38) 0%,rgba(12,36,27,.06) 20%,rgba(12,36,27,.12) 40%,rgba(12,36,27,.62) 76%,rgba(12,36,27,.8) 100%)}
+  .hero-shade{opacity:.14}
   .nav{margin-top:.75rem;width:calc(100% - 1.5rem)}
   .hero-body{padding:3.25rem 0 5.25rem;width:calc(100% - 2.25rem)}
   .hero-eyebrow{font-size:.66rem;letter-spacing:.16em;margin-bottom:.9rem;white-space:nowrap}
